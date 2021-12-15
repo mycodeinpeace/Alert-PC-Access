@@ -1,5 +1,13 @@
 Manifest-Version: 1.0
 Built-By: Deniz
 Build-Jdk: 15.0.2
+Class-Path: lib/ lib/system-hook-3.8.jar lib/java-telegram-bot-api-5.3.0
+ .jar lib/gson-2.8.6.jar lib/okhttp-4.9.0.jar lib/okio-2.8.0.jar lib/kot
+ lin-stdlib-common-1.4.0.jar lib/kotlin-stdlib-1.4.10.jar lib/annotation
+ s-13.0.jar lib/logging-interceptor-4.9.0.jar lib/kotlin-stdlib-jdk8-1.4
+ .10.jar lib/kotlin-stdlib-jdk7-1.4.10.jar lib/commons-io-2.11.0.jar lib
+ /jna-5.10.0.jar lib/jna-platform-5.10.0.jar lib/jctools-core-3.3.0.jar 
+ lib/log4j-1.2.17.jar
+Main-Class: com.security.notifypcaccess.main.Main
 Created-By: Maven Integration for Eclipse
 
