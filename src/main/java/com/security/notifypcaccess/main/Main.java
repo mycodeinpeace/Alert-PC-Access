@@ -1,8 +1,10 @@
 package com.security.notifypcaccess.main;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -23,15 +25,13 @@ public class Main {
 	private final TelegramBotNotify telegramBot = new TelegramBotNotify();
 
 	// Apps that are in this list will not be alerted.
-	private final HashSet<String> whitelistedApps = new HashSet<>();
+	private final String whitelistedApp = "value=Spotify";
 
 	long nextPopupTime;
 	
 	public final static Logger logger = Logger.getLogger(Main.class);
 	public Main() {
 		nextPopupTime = System.currentTimeMillis();
-
-		//whitelistedApps.add()
 	}
 	
 	public void run() throws IOException, InterruptedException {
@@ -41,6 +41,12 @@ public class Main {
 		
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			  try {
+
+				  String alertString = getAlertStringToSend(sharedEventQueue, sharedEventQueue.size());
+
+				  telegramBot.alertMessage(alertString);
+				  // telegramBot.alertDocument(alertString.getBytes(), "alert", ".txt");
+				  logger.info(alertString);
 				  
 				  telegramBot.alertMessage("Program closed.");
 				  logger.debug("Program closed.");
@@ -63,9 +69,9 @@ public class Main {
 			if (sharedEventQueue.isEmpty()) continue; // There are no events to alert. Continue.
 			
 			String alertString = getAlertStringToSend(sharedEventQueue, sharedEventQueue.size());
-			
-			// telegramBot.alertDocument(alertString.getBytes(), "alert", ".txt");
+
 			telegramBot.alertMessage(alertString);
+			// telegramBot.alertDocument(alertString.getBytes(), "alert", ".txt");
 			logger.info(alertString);
 			
 			/*CameraCapture cameraCapture = new CameraCapture();
@@ -73,13 +79,15 @@ public class Main {
 			
 			telegramBot.alertDocument(imageData, "alert", ".jpg");*/
 			//FileUtils.writeByteArrayToFile(new File("test.jpg"), imageData);
-			
+
+			/*
 			if (nextPopupTime < System.currentTimeMillis()) {
 				JFrame jf=new JFrame();
 				jf.setAlwaysOnTop(true);
 				JOptionPane.showMessageDialog(jf, "This computer is being monitored. Please do not type any sensitive information.");
 				nextPopupTime = nextPopupTime + 600000; // 10 minutes in milliseconds.
 			}
+			*/
 		}
 	}
 		
@@ -101,7 +109,9 @@ public class Main {
 		StringBuilder sb = new StringBuilder();
 		
 		for (int i = 0; i < length; i++) {
-			sb.append(sharedEventQueue.poll());
+			String event = sharedEventQueue.poll().toString();
+			if (event.contains(whitelistedApp) || event.equals("null") || event == null) continue;
+			sb.append(event);
 			sb.append(System.lineSeparator());
 		}
 		

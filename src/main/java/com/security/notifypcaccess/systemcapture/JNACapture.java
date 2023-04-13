@@ -134,7 +134,7 @@ public class JNACapture  implements Runnable {
 				"-e", "set frontApp to first application process whose frontmost is true",
 				"-e", "set appName to name of frontApp",
 				"-e", "set windowName to name of first window of frontApp",
-				"-e", "return appName & \", \" & windowName",
+				"-e", "return appName & \" - \" & windowName",
 				"-e", "end tell"
 		};
 
@@ -148,23 +148,6 @@ public class JNACapture  implements Runnable {
 		}
 
 		return appName;
-	}
-
-	public static String executeShellCommand(String command) {
-		StringBuilder output = new StringBuilder();
-
-		try {
-			Process process = Runtime.getRuntime().exec(command);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				output.append(line);
-			}
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return output.toString().trim();
 	}
 
 	public String getExecutableName(String fullPath) {
