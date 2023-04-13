@@ -10,9 +10,9 @@ import com.pengrad.telegrambot.response.SendResponse;
 
 public class TelegramBotNotify {
 	
-	// t.me/pcmonitorandnotifybot
-	public static String TOKEN = "5087192702:AAF_-UNMrN0xs-aHFzwqwIZPZisyY073bWo";
-	
+	// t.me/pcnotifyandalertbot
+	public static String TOKEN = "6257712280:AAEK3UtUGGc4Tvs-IaOhlqMws5-joInvfe0";
+	private static long CHAT_ID = 5676825909L;
 	private TelegramBot bot;
 	
 	public TelegramBotNotify() {
@@ -45,7 +45,8 @@ public class TelegramBotNotify {
 				message = update.message().text();
 				chatId = update.message().chat().id();
 			}
-			
+
+			System.out.println("chatid: " + chatId + " message: " + message);
 		    
 			try {
 				// ... process updates
@@ -59,11 +60,11 @@ public class TelegramBotNotify {
 	}
 	
 	public void alertDocument(byte[] documentByteArray, String filename, String extention) {
-		sendDocument(documentByteArray, filename, extention, 2141146468L);
+		sendDocument(documentByteArray, filename, extention, CHAT_ID);
 	}
 	
 	public void alertMessage(String message) {
-		sendMessage(message, 2141146468L);
+		sendMessage(message, CHAT_ID);
 	}
 	
 	

@@ -1,6 +1,8 @@
 package com.security.notifypcaccess.main;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -19,12 +21,17 @@ public class Main {
 	// This implementation is using the Fast Flow method for polling from the queue (with minor change to correctly publish the index) and an extension of the Leslie Lamport concurrent queue algorithm (originated by Martin Thompson) on the producer side.
 	private final MpscArrayQueue<SystemMonitorEvent> sharedEventQueue = new MpscArrayQueue<SystemMonitorEvent>(500);
 	private final TelegramBotNotify telegramBot = new TelegramBotNotify();
-	
+
+	// Apps that are in this list will not be alerted.
+	private final HashSet<String> whitelistedApps = new HashSet<>();
+
 	long nextPopupTime;
 	
 	public final static Logger logger = Logger.getLogger(Main.class);
 	public Main() {
 		nextPopupTime = System.currentTimeMillis();
+
+		//whitelistedApps.add()
 	}
 	
 	public void run() throws IOException, InterruptedException {
@@ -57,8 +64,9 @@ public class Main {
 			
 			String alertString = getAlertStringToSend(sharedEventQueue, sharedEventQueue.size());
 			
-			telegramBot.alertDocument(alertString.getBytes(), "alert", ".txt");
-			logger.debug(alertString);
+			// telegramBot.alertDocument(alertString.getBytes(), "alert", ".txt");
+			telegramBot.alertMessage(alertString);
+			logger.info(alertString);
 			
 			/*CameraCapture cameraCapture = new CameraCapture();
 			byte[] imageData = cameraCapture.capture();
