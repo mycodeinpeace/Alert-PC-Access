@@ -1,12 +1,17 @@
 package com.security.notifypcaccess.systemcapture;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.sql.Timestamp;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.sun.jna.platform.mac.CoreFoundation;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
 import org.jctools.queues.MpscArrayQueue;
 
 import com.security.notifypcaccess.main.SystemMonitorEvent;
@@ -14,10 +19,16 @@ import com.sun.jna.*;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.win32.*;
 
+import com.sun.jna.Native;
+import com.sun.jna.Pointer;
+
+import com.sun.jna.platform.mac.CoreFoundation.CFArrayRef;
+import com.sun.jna.platform.mac.CoreFoundation.CFStringRef;
+import com.sun.jna.platform.mac.CoreFoundation.CFTypeRef;
+
 public class JNACapture  implements Runnable {
 	
 	MpscArrayQueue<SystemMonitorEvent> sharedEventQueue;
-	
 	private String lastApplicationName;
 	
 	public JNACapture(MpscArrayQueue<SystemMonitorEvent> sharedeventqueue) {
@@ -26,10 +37,21 @@ public class JNACapture  implements Runnable {
 	}
 
 	public void run() {
-		
+
+		boolean isWindows = System.getProperty("os.name").toLowerCase().startsWith("windows");
+		System.out.println("isWindows: " + isWindows);
+
 		while (true) {
 			try {
-				String appName = getActiveExcecutableName() + " - " + getActiveApplicationName();
+				String appName;
+				if (isWindows) {
+					appName = getActiveExecutableNameWindows() + " - " + getActiveApplicationNameWindows();
+				} else {
+					appName = getActiveApplicationNameMac();
+				}
+
+				if (appName == null) continue;
+
 				if (!appName.equalsIgnoreCase(lastApplicationName)) { // Alert if the screen changes.
 					Timestamp now = new Timestamp(System.currentTimeMillis());
 					SystemMonitorEvent event = new SystemMonitorEvent(now, "jna", appName);
@@ -70,7 +92,7 @@ public class JNACapture  implements Runnable {
 		int GetModuleFileNameExA(WinNT.HANDLE hProcess, WinNT.HANDLE hModule, byte[] lpFilename, int nSize);
 	}
 
-   public String getActiveApplicationName() throws InterruptedException {
+   public String getActiveApplicationNameWindows() throws InterruptedException {
       byte[] windowText = new byte[512];
 
       PointerType hwnd = User32.INSTANCE.GetForegroundWindow();
@@ -78,7 +100,7 @@ public class JNACapture  implements Runnable {
       return Native.toString(windowText);
    }
 
-	public String getActiveExcecutableName() throws InterruptedException {
+	public String getActiveExecutableNameWindows() throws InterruptedException {
 		HWND hwnd = User32.INSTANCE.GetForegroundWindow();
 		IntByReference processId = new IntByReference();
 		User32.INSTANCE.GetWindowThreadProcessId(hwnd, processId);
@@ -94,6 +116,55 @@ public class JNACapture  implements Runnable {
 		Kernel32.INSTANCE.CloseHandle(process);
 
 		return getExecutableName(Native.toString(exePath));
+	}
+
+	public interface MacOSXUtils extends CoreFoundation {
+		MacOSXUtils INSTANCE = Native.loadLibrary("CoreFoundation", MacOSXUtils.class);
+
+		Pointer kCFAllocatorDefault = INSTANCE.CFAllocatorGetDefault().getPointer();
+
+		CFArrayRef CFRunLoopCopyAllModes(Pointer rl);
+	}
+
+	public static String getActiveApplicationNameMac() {
+		String appName = "";
+		String[] script = {
+				"osascript",
+				"-e", "tell application \"System Events\"",
+				"-e", "set frontApp to first application process whose frontmost is true",
+				"-e", "set appName to name of frontApp",
+				"-e", "set windowName to name of first window of frontApp",
+				"-e", "return appName & \", \" & windowName",
+				"-e", "end tell"
+		};
+
+		try {
+			Process process = new ProcessBuilder(script).start();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			appName = reader.readLine();
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return appName;
+	}
+
+	public static String executeShellCommand(String command) {
+		StringBuilder output = new StringBuilder();
+
+		try {
+			Process process = Runtime.getRuntime().exec(command);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			String line;
+			while ((line = reader.readLine()) != null) {
+				output.append(line);
+			}
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return output.toString().trim();
 	}
 
 	public String getExecutableName(String fullPath) {
