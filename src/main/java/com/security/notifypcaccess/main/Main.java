@@ -26,12 +26,17 @@ public class Main {
 
 	// Apps that are in this list will not be alerted.
 	private final String whitelistedApp = "value=Spotify";
+	private final ArrayList<String> whitelistedApps = new ArrayList<>();
 
 	long nextPopupTime;
 	
 	public final static Logger logger = Logger.getLogger(Main.class);
 	public Main() {
 		nextPopupTime = System.currentTimeMillis();
+
+		whitelistedApps.add("Spotify");
+		whitelistedApps.add("TIDAL");
+		whitelistedApps.add("VirtualDJ");
 	}
 	
 	public void run() throws IOException, InterruptedException {
@@ -109,10 +114,22 @@ public class Main {
 		StringBuilder sb = new StringBuilder();
 		
 		for (int i = 0; i < length; i++) {
-			String event = sharedEventQueue.poll().toString();
-			if (event.contains(whitelistedApp) || event.equals("null") || event == null) continue;
-			sb.append(event);
-			sb.append(System.lineSeparator());
+			SystemMonitorEvent event = sharedEventQueue.poll();
+			if (event == null) continue;
+			String eventValue = event.getValue();
+
+			boolean isSkip = false;
+			for (String appToSkip : whitelistedApps) {
+				if (eventValue.startsWith(appToSkip)) {
+					// Skipped
+					isSkip = true;
+					break;
+				}
+			}
+			if (!isSkip) {
+				sb.append(event);
+				sb.append(System.lineSeparator());
+			}
 		}
 		
 		return sb.toString();
